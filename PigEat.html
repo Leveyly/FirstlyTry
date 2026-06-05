@@ -60,6 +60,9 @@
             display: block;
             margin: 0 auto;
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            image-rendering: pixelated;
         }
         
         .controls {
@@ -208,7 +211,7 @@
             <div class="info-item">食物: <span id="foodCount">0</span>/16</div>
         </div>
         
-        <canvas id="gameCanvas" width="600" height="600"></canvas>
+        <canvas id="gameCanvas" width="1200" height="1200" style="width: 600px; height: 600px;"></canvas>
         
         <div class="controls">
             使用 ↑ ↓ ← → 或 WASD 控制小猪移动
@@ -246,9 +249,13 @@
 
     <script>
         const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { 
+            alpha: false, 
+            desynchronized: true,
+            powerPreference: 'high-performance'
+        });
         
-        const CELL_SIZE = 30;
+        const CELL_SIZE = 60;
         const MAZE_WIDTH = 20;
         const MAZE_HEIGHT = 20;
         
@@ -266,6 +273,9 @@
         let musicPlaying = false;
         let backgroundMusicOscillator = null;
         let backgroundMusicGain = null;
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
+        let currentFps = 60;
         
         const foodEmojis = ['🍎', '🍌', '🍊', '🍇', '🍓', '🫐', '🍒', '🍉', '🥝', '🍑', '🍍', '🥭', '🍋', '🍐', '🍈', '🥥'];
         const foodNames = ['苹果', '香蕉', '橙子', '葡萄', '草莓', '蓝莓', '樱桃', '西瓜', '猕猴桃', '桃子', '菠萝', '芒果', '柠檬', '梨', '哈密瓜', '椰子'];
@@ -570,7 +580,7 @@
                         ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                         
                         ctx.strokeStyle = '#654321';
-                        ctx.lineWidth = 2;
+                        ctx.lineWidth = 3;
                         ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                     } else {
                         ctx.fillStyle = '#90EE90';
@@ -809,6 +819,13 @@
         
         function gameLoop(currentTime) {
             if (!gameActive) return;
+            
+            frameCount++;
+            if (currentTime - lastFpsUpdate >= 1000) {
+                currentFps = frameCount;
+                frameCount = 0;
+                lastFpsUpdate = currentTime;
+            }
             
             const deltaTime = currentTime - lastTime;
             lastTime = currentTime;
