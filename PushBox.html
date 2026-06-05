@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推箱子游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .info-item {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .info-value {
+            color: #667eea;
+            margin-left: 10px;
+        }
+
+        .game-board {
+            display: grid;
+            gap: 2px;
+            background: #2c3e50;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .cell {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .wall {
+            background: #34495e;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .floor {
+            background: #ecf0f1;
+        }
+
+        .target {
+            background: #e74c3c;
+            border: 3px dashed #c0392b;
+        }
+
+        .box {
+            background: #f39c12;
+            border: 3px solid #e67e22;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .box-on-target {
+            background: #27ae60;
+            border: 3px solid #229954;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .player {
+            background: #3498db;
+            border: 3px solid #2980b9;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .player-on-target {
+            background: #9b59b6;
+            border: 3px solid #8e44ad;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f39c12;
+            color: white;
+        }
+
+        .level-selector {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .level-btn {
+            padding: 8px 16px;
+            font-size: 14px;
+            background: #ecf0f1;
+            color: #333;
+            border: 2px solid #bdc3c7;
+        }
+
+        .level-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .level-btn.completed {
+            background: #27ae60;
+            color: white;
+            border-color: #27ae60;
+        }
+
+        .instructions {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .instructions h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .instructions p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .win-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            text-align: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .win-message h2 {
+            color: #27ae60;
+            margin-bottom: 20px;
+        }
+
+        .win-message p {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 999;
+        }
+
+        @media (max-width: 600px) {
+            .cell {
+                width: 35px;
+                height: 35px;
+                font-size: 20px;
+            }
+            
+            .game-container {
+                padding: 15px;
+            }
+            
+            button {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🎮 推箱子游戏</h1>
+    
+    <div class="game-container">
+        <div class="game-info">
+            <div class="info-item">关卡: <span class="info-value" id="currentLevel">1</span></div>
+            <div class="info-item">步数: <span class="info-value" id="moveCount">0</span></div>
+            <div class="info-item">状态: <span class="info-value" id="gameStatus">进行中</span></div>
+        </div>
+
+        <div class="level-selector" id="levelSelector"></div>
+
+        <div class="game-board" id="gameBoard"></div>
+
+        <div class="controls">
+            <button class="btn-primary" onclick="undoMove()">↩️ 撤销</button>
+            <button class="btn-secondary" onclick="resetLevel()">🔄 重置</button>
+            <button class="btn-success" onclick="nextLevel()">➡️ 下一关</button>
+            <button class="btn-warning" onclick="prevLevel()">⬅️ 上一关</button>
+        </div>
+
+        <div class="instructions">
+            <h3>📖 游戏说明</h3>
+            <p>使用方向键或WASD控制玩家移动，将所有箱子推到目标位置即可过关。箱子只能推，不能拉。按撤销键可以回退一步。</p>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay"></div>
+    <div class="win-message" id="winMessage">
+        <h2>🎉 恭喜过关！</h2>
+        <p>你用了 <span id="finalMoves">0</span> 步完成了本关</p>
+        <button class="btn-success" onclick="nextLevel()">下一关</button>
+        <button class="btn-secondary" onclick="closeWinMessage()">留在本关</button>
+    </div>
+
+    <script>
+        const WALL = '#';
+        const FLOOR = ' ';
+        const TARGET = '.';
+        const BOX = '$';
+        const BOX_ON_TARGET = '*';
+        const PLAYER = '@';
+        const PLAYER_ON_TARGET = '+';
+
+        const levels = [
+            [
+                "  ##### ",
+                "###   # ",
+                "#.@$  # ",
+                "### $.# ",
+                "#.##$ # ",
+                "# # . ##",
+                "#$ *$$.#",
+                "#   .  #",
+                "########"
+            ],
+            [
+                "#####",
+                "#@  #",
+                "# $ #",
+                "#  .#",
+                "#####"
+            ],
+            [
+                "  ####  ",
+                "###  ####",
+                "#     $ #",
+                "# #  #$ #",
+                "# . .#@ #",
+                "#########"
+            ],
+            [
+                "######  ",
+                "#    #  ",
+                "# #$ #  ",
+                "# .$@###",
+                "######  "
+            ],
+            [
+                "  ####  ",
+                "###  ###",
+                "#    $ #",
+                "# #  # #",
+                "# . .@ #",
+                "########"
+            ]
+        ];
+
+        let currentLevel = 0;
+        let gameBoard = [];
+        let playerPos = { x: 0, y: 0 };
+        let moveCount = 0;
+        let moveHistory = [];
+        let completedLevels = new Set();
+
+        function initGame() {
+            loadLevel(currentLevel);
+            createLevelSelector();
+            setupKeyboardControls();
+        }
+
+        function loadLevel(levelIndex) {
+            if (levelIndex < 0 || levelIndex >= levels.length) return;
+            
+            currentLevel = levelIndex;
+            const level = levels[levelIndex];
+            gameBoard = [];
+            moveCount = 0;
+            moveHistory = [];
+            
+            for (let y = 0; y < level.length; y++) {
+                gameBoard[y] = [];
+                for (let x = 0; x < level[y].length; x++) {
+                    gameBoard[y][x] = level[y][x];
+                    if (level[y][x] === PLAYER || level[y][x] === PLAYER_ON_TARGET) {
+                        playerPos = { x, y };
+                    }
+                }
+            }
+            
+            updateDisplay();
+        }
+
+        function createLevelSelector() {
+            const selector = document.getElementById('levelSelector');
+            selector.innerHTML = '';
+            
+            for (let i = 0; i < levels.length; i++) {
+                const btn = document.createElement('button');
+                btn.className = 'level-btn';
+                btn.textContent = `关卡 ${i + 1}`;
+                btn.onclick = () => loadLevel(i);
+                
+                if (i === currentLevel) btn.classList.add('active');
+                if (completedLevels.has(i)) btn.classList.add('completed');
+                
+                selector.appendChild(btn);
+            }
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('gameBoard');
+            board.innerHTML = '';
+            
+            const height = gameBoard.length;
+            const width = gameBoard[0].length;
+            
+            board.style.gridTemplateColumns = `repeat(${width}, 50px)`;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    const char = gameBoard[y][x];
+                    switch (char) {
+                        case WALL:
+                            cell.classList.add('wall');
+                            cell.textContent = '🧱';
+                            break;
+                        case FLOOR:
+                            cell.classList.add('floor');
+                            break;
+                        case TARGET:
+                            cell.classList.add('target');
+                            cell.textContent = '🎯';
+                            break;
+                        case BOX:
+                            cell.classList.add('box');
+                            cell.textContent = '📦';
+                            break;
+                        case BOX_ON_TARGET:
+                            cell.classList.add('box-on-target');
+                            cell.textContent = '✅';
+                            break;
+                        case PLAYER:
+                            cell.classList.add('player');
+                            cell.textContent = '👤';
+                            break;
+                        case PLAYER_ON_TARGET:
+                            cell.classList.add('player-on-target');
+                            cell.textContent = '👤';
+                            break;
+                    }
+                    
+                    board.appendChild(cell);
+                }
+            }
+        }
+
+        function updateDisplay() {
+            document.getElementById('currentLevel').textContent = currentLevel + 1;
+            document.getElementById('moveCount').textContent = moveCount;
+            document.getElementById('gameStatus').textContent = checkWin() ? '已完成' : '进行中';
+            renderBoard();
+            createLevelSelector();
+        }
+
+        function movePlayer(dx, dy) {
+            const newX = playerPos.x + dx;
+            const newY = playerPos.y + dy;
+            
+            if (newY < 0 || newY >= gameBoard.length || newX < 0 || newX >= gameBoard[0].length) {
+                return false;
+            }
+            
+            const targetCell = gameBoard[newY][newX];
+            
+            if (targetCell === WALL) {
+                return false;
+            }
+            
+            if (targetCell === BOX || targetCell === BOX_ON_TARGET) {
+                const boxNewX = newX + dx;
+                const boxNewY = newY + dy;
+                
+                if (boxNewY < 0 || boxNewY >= gameBoard.length || boxNewX < 0 || boxNewX >= gameBoard[0].length) {
+                    return false;
+                }
+                
+                const boxTargetCell = gameBoard[boxNewY][boxNewX];
+                
+                if (boxTargetCell === WALL || boxTargetCell === BOX || boxTargetCell === BOX_ON_TARGET) {
+                    return false;
+                }
+                
+                moveHistory.push({
+                    board: JSON.parse(JSON.stringify(gameBoard)),
+                    playerPos: { ...playerPos },
+                    moveCount: moveCount
+                });
+                
+                if (boxTargetCell === TARGET) {
+                    gameBoard[boxNewY][boxNewX] = BOX_ON_TARGET;
+                } else {
+                    gameBoard[boxNewY][boxNewX] = BOX;
+                }
+                
+                if (targetCell === BOX_ON_TARGET) {
+                    gameBoard[newY][newX] = PLAYER_ON_TARGET;
+                } else {
+                    gameBoard[newY][newX] = PLAYER;
+                }
+            } else {
+                moveHistory.push({
+                    board: JSON.parse(JSON.stringify(gameBoard)),
+                    playerPos: { ...playerPos },
+                    moveCount: moveCount
+                });
+                
+                if (targetCell === TARGET) {
+                    gameBoard[newY][newX] = PLAYER_ON_TARGET;
+                } else {
+                    gameBoard[newY][newX] = PLAYER;
+                }
+            }
+            
+            const currentCell = gameBoard[playerPos.y][playerPos.x];
+            if (currentCell === PLAYER_ON_TARGET) {
+                gameBoard[playerPos.y][playerPos.x] = TARGET;
+            } else {
+                gameBoard[playerPos.y][playerPos.x] = FLOOR;
+            }
+            
+            playerPos = { x: newX, y: newY };
+            moveCount++;
+            
+            updateDisplay();
+            
+            if (checkWin()) {
+                setTimeout(showWinMessage, 300);
+            }
+            
+            return true;
+        }
+
+        function undoMove() {
+            if (moveHistory.length === 0) return;
+            
+            const lastState = moveHistory.pop();
+            gameBoard = lastState.board;
+            playerPos = lastState.playerPos;
+            moveCount = lastState.moveCount;
+            
+            updateDisplay();
+        }
+
+        function resetLevel() {
+            loadLevel(currentLevel);
+        }
+
+        function nextLevel() {
+            closeWinMessage();
+            if (currentLevel < levels.length - 1) {
+                loadLevel(currentLevel + 1);
+            } else {
+                alert('🎉 恭喜你完成了所有关卡！');
+            }
+        }
+
+        function prevLevel() {
+            if (currentLevel > 0) {
+                loadLevel(currentLevel - 1);
+            }
+        }
+
+        function checkWin() {
+            for (let y = 0; y < gameBoard.length; y++) {
+                for (let x = 0; x < gameBoard[y].length; x++) {
+                    if (gameBoard[y][x] === BOX) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        function showWinMessage() {
+            completedLevels.add(currentLevel);
+            document.getElementById('finalMoves').textContent = moveCount;
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('winMessage').style.display = 'block';
+            createLevelSelector();
+        }
+
+        function closeWinMessage() {
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('winMessage').style.display = 'none';
+        }
+
+        function setupKeyboardControls() {
+            document.addEventListener('keydown', (e) => {
+                switch (e.key) {
+                    case 'ArrowUp':
+                    case 'w':
+                    case 'W':
+                        e.preventDefault();
+                        movePlayer(0, -1);
+                        break;
+                    case 'ArrowDown':
+                    case 's':
+                    case 'S':
+                        e.preventDefault();
+                        movePlayer(0, 1);
+                        break;
+                    case 'ArrowLeft':
+                    case 'a':
+                    case 'A':
+                        e.preventDefault();
+                        movePlayer(-1, 0);
+                        break;
+                    case 'ArrowRight':
+                    case 'd':
+                    case 'D':
+                        e.preventDefault();
+                        movePlayer(1, 0);
+                        break;
+                    case 'z':
+                    case 'Z':
+                        if (e.ctrlKey) {
+                            e.preventDefault();
+                            undoMove();
+                        }
+                        break;
+                    case 'r':
+                    case 'R':
+                        e.preventDefault();
+                        resetLevel();
+                        break;
+                }
+            });
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
