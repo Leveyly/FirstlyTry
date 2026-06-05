@@ -297,7 +297,7 @@
             let noteIndex = 0;
             
             backgroundMusicGain = audioContext.createGain();
-            backgroundMusicGain.gain.setValueAtTime(0.15, audioContext.currentTime);
+            backgroundMusicGain.gain.setValueAtTime(0.25, audioContext.currentTime);
             backgroundMusicGain.connect(audioContext.destination);
             
             function playNextNote() {
@@ -355,7 +355,7 @@
                     walkOsc.frequency.setValueAtTime(150, audioContext.currentTime);
                     walkOsc.frequency.exponentialRampToValueAtTime(80, audioContext.currentTime + 0.08);
                     
-                    walkGain.gain.setValueAtTime(0.25, audioContext.currentTime);
+                    walkGain.gain.setValueAtTime(0.35, audioContext.currentTime);
                     walkGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
                     
                     walkOsc.start(audioContext.currentTime);
@@ -371,7 +371,7 @@
                     eatOsc.frequency.setValueAtTime(523.25, audioContext.currentTime);
                     eatOsc.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1);
                     eatOsc.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2);
-                    eatGain.gain.setValueAtTime(0.35, audioContext.currentTime);
+                    eatGain.gain.setValueAtTime(0.45, audioContext.currentTime);
                     eatGain.gain.exponentialDecayTo = 0.01;
                     eatOsc.start(audioContext.currentTime);
                     eatOsc.stop(audioContext.currentTime + 0.3);
@@ -387,7 +387,7 @@
                     levelOsc.frequency.setValueAtTime(554.37, audioContext.currentTime + 0.1);
                     levelOsc.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.2);
                     levelOsc.frequency.setValueAtTime(880, audioContext.currentTime + 0.3);
-                    levelGain.gain.setValueAtTime(0.4, audioContext.currentTime);
+                    levelGain.gain.setValueAtTime(0.5, audioContext.currentTime);
                     levelGain.gain.exponentialDecayTo = 0.01;
                     levelOsc.start(audioContext.currentTime);
                     levelOsc.stop(audioContext.currentTime + 0.4);
@@ -402,7 +402,7 @@
                     caughtOsc.frequency.setValueAtTime(200, audioContext.currentTime);
                     caughtOsc.frequency.setValueAtTime(150, audioContext.currentTime + 0.1);
                     caughtOsc.frequency.setValueAtTime(100, audioContext.currentTime + 0.2);
-                    caughtGain.gain.setValueAtTime(0.45, audioContext.currentTime);
+                    caughtGain.gain.setValueAtTime(0.55, audioContext.currentTime);
                     caughtOsc.start(audioContext.currentTime);
                     caughtOsc.stop(audioContext.currentTime + 0.4);
                     break;
@@ -415,7 +415,7 @@
                         osc.connect(gain);
                         gain.connect(audioContext.destination);
                         osc.frequency.setValueAtTime(freq, audioContext.currentTime + i * 0.1);
-                        gain.gain.setValueAtTime(0.4, audioContext.currentTime + i * 0.1);
+                        gain.gain.setValueAtTime(0.5, audioContext.currentTime + i * 0.1);
                         gain.gain.exponentialDecayTo = 0.01;
                         osc.start(audioContext.currentTime + i * 0.1);
                         osc.stop(audioContext.currentTime + i * 0.1 + 0.15);
@@ -538,12 +538,26 @@
                 let y = Math.floor(Math.random() * (MAZE_HEIGHT - 2)) + 1;
                 
                 if (isValidFoodPosition(x, y)) {
-                    let exists = foods.some(f => f.x === x && f.y === y);
-                    if (!exists) {
-                        foods.push({ x, y, emoji: foodEmojis[placed], name: foodNames[placed], collected: false });
+                    let occupied = false;
+                    for (const food of foods) {
+                        if (food.x === x && food.y === y) {
+                            occupied = true;
+                            break;
+                        }
+                    }
+                    
+                    if (!occupied) {
+                        foods.push({
+                            x: x,
+                            y: y,
+                            emoji: foodEmojis[placed],
+                            name: foodNames[placed],
+                            collected: false
+                        });
                         placed++;
                     }
                 }
+                
                 attempts++;
             }
         }
@@ -552,196 +566,82 @@
             for (let y = 0; y < MAZE_HEIGHT; y++) {
                 for (let x = 0; x < MAZE_WIDTH; x++) {
                     if (maze[y][x] === 1) {
-                        const gradient = ctx.createLinearGradient(
-                            x * CELL_SIZE, y * CELL_SIZE,
-                            (x + 1) * CELL_SIZE, (y + 1) * CELL_SIZE
-                        );
-                        gradient.addColorStop(0, '#4a5568');
-                        gradient.addColorStop(1, '#2d3748');
-                        ctx.fillStyle = gradient;
+                        ctx.fillStyle = '#8B4513';
                         ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                         
-                        ctx.strokeStyle = '#1a202c';
-                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = '#654321';
+                        ctx.lineWidth = 2;
                         ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                        
-                        ctx.fillStyle = '#718096';
-                        ctx.fillRect(x * CELL_SIZE + 5, y * CELL_SIZE + 5, CELL_SIZE - 10, CELL_SIZE - 10);
                     } else {
-                        ctx.fillStyle = '#f7fafc';
+                        ctx.fillStyle = '#90EE90';
                         ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-                        
-                        ctx.strokeStyle = '#e2e8f0';
-                        ctx.lineWidth = 0.5;
-                        ctx.strokeRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
                     }
                 }
             }
         }
         
+        function drawPig() {
+            const x = pig.x * CELL_SIZE + CELL_SIZE / 2;
+            const y = pig.y * CELL_SIZE + CELL_SIZE / 2;
+            const size = CELL_SIZE * 0.8 * pig.size;
+            
+            ctx.font = `${size}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🐷', x, y);
+        }
+        
+        function drawWolf() {
+            const x = wolf.x * CELL_SIZE + CELL_SIZE / 2;
+            const y = wolf.y * CELL_SIZE + CELL_SIZE / 2;
+            const size = CELL_SIZE * 0.8;
+            
+            ctx.font = `${size}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🐺', x, y);
+        }
+        
         function drawFoods() {
             foods.forEach(food => {
                 if (!food.collected) {
-                    ctx.font = `${CELL_SIZE - 8}px Arial`;
+                    const x = food.x * CELL_SIZE + CELL_SIZE / 2;
+                    const y = food.y * CELL_SIZE + CELL_SIZE / 2;
+                    const size = CELL_SIZE * 0.6;
+                    
+                    ctx.font = `${size}px Arial`;
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    
-                    const x = food.x * CELL_SIZE + CELL_SIZE/2;
-                    const y = food.y * CELL_SIZE + CELL_SIZE/2;
-                    
-                    ctx.save();
-                    ctx.shadowColor = 'rgba(0,0,0,0.3)';
-                    ctx.shadowBlur = 5;
-                    ctx.shadowOffsetX = 2;
-                    ctx.shadowOffsetY = 2;
                     ctx.fillText(food.emoji, x, y);
-                    ctx.restore();
                 }
             });
         }
         
-        function drawPig() {
-            const x = pig.x * CELL_SIZE + CELL_SIZE/2;
-            const y = pig.y * CELL_SIZE + CELL_SIZE/2;
-            const baseSize = CELL_SIZE/2 - 2;
-            const size = baseSize * pig.size;
-            
-            const gradient = ctx.createRadialGradient(x - 2, y - 2, 0, x, y, size);
-            gradient.addColorStop(0, '#FFE4E1');
-            gradient.addColorStop(1, '#FFB6C1');
-            
-            ctx.beginPath();
-            ctx.arc(x, y, size, 0, Math.PI * 2);
-            ctx.fillStyle = gradient;
-            ctx.fill();
-            ctx.strokeStyle = '#FF69B4';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.arc(x - size/3, y - size/4, size/5, 0, Math.PI * 2);
-            ctx.arc(x + size/3, y - size/4, size/5, 0, Math.PI * 2);
-            ctx.fillStyle = '#000';
-            ctx.fill();
-            
-            ctx.beginPath();
-            ctx.arc(x - size/3 - 1, y - size/4 - 1, size/10, 0, Math.PI * 2);
-            ctx.arc(x + size/3 - 1, y - size/4 - 1, size/10, 0, Math.PI * 2);
-            ctx.fillStyle = '#fff';
-            ctx.fill();
-            
-            ctx.beginPath();
-            ctx.ellipse(x, y + size/4, size/3, size/4, 0, 0, Math.PI * 2);
-            ctx.fillStyle = '#FF69B4';
-            ctx.fill();
-            ctx.strokeStyle = '#FF1493';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.arc(x - size/5, y + size/4, size/10, 0, Math.PI * 2);
-            ctx.arc(x + size/5, y + size/4, size/10, 0, Math.PI * 2);
-            ctx.fillStyle = '#FF1493';
-            ctx.fill();
-            
-            const levelIndex = Math.min(pig.level, levelNames.length - 1);
-            const levelName = levelNames[levelIndex];
-            const levelColor = levelColors[levelIndex];
-            
-            ctx.font = 'bold 10px Arial';
-            ctx.fillStyle = levelColor;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(levelName, x, y - size - 8);
-        }
-        
-        function drawWolf() {
-            const x = wolf.x * CELL_SIZE + CELL_SIZE/2;
-            const y = wolf.y * CELL_SIZE + CELL_SIZE/2;
-            const size = CELL_SIZE/2 - 2;
-            
-            ctx.save();
-            ctx.shadowColor = 'rgba(0,0,0,0.3)';
-            ctx.shadowBlur = 10;
-            ctx.shadowOffsetX = 4;
-            ctx.shadowOffsetY = 4;
-            
-            const gradient = ctx.createRadialGradient(x - 3, y - 3, 0, x, y, size);
-            gradient.addColorStop(0, '#6B7280');
-            gradient.addColorStop(1, '#4B5563');
-            
-            ctx.beginPath();
-            ctx.arc(x, y, size, 0, Math.PI * 2);
-            ctx.fillStyle = gradient;
-            ctx.fill();
-            ctx.strokeStyle = '#374151';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            ctx.restore();
-            
-            ctx.beginPath();
-            ctx.moveTo(x - size, y - size/2);
-            ctx.lineTo(x - size/2, y - size);
-            ctx.lineTo(x, y - size/2);
-            ctx.lineTo(x + size/2, y - size);
-            ctx.lineTo(x + size, y - size/2);
-            ctx.closePath();
-            ctx.fillStyle = '#4B5563';
-            ctx.fill();
-            ctx.strokeStyle = '#374151';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-            
-            ctx.beginPath();
-            ctx.arc(x - size/3, y - size/4, size/5, 0, Math.PI * 2);
-            ctx.arc(x + size/3, y - size/4, size/5, 0, Math.PI * 2);
-            ctx.fillStyle = '#EF4444';
-            ctx.fill();
-            
-            ctx.beginPath();
-            ctx.arc(x - size/3, y - size/4, size/8, 0, Math.PI * 2);
-            ctx.arc(x + size/3, y - size/4, size/8, 0, Math.PI * 2);
-            ctx.fillStyle = '#000';
-            ctx.fill();
-            
-            ctx.beginPath();
-            ctx.arc(x, y + size/3, size/4, 0, Math.PI * 2);
-            ctx.fillStyle = '#000';
-            ctx.fill();
-            
-            ctx.beginPath();
-            ctx.moveTo(x - size/2, y + size/2);
-            ctx.lineTo(x - size/3, y + size/2 + 5);
-            ctx.lineTo(x - size/6, y + size/2);
-            ctx.moveTo(x + size/6, y + size/2);
-            ctx.lineTo(x + size/3, y + size/2 + 5);
-            ctx.lineTo(x + size/2, y + size/2);
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2;
-            ctx.stroke();
-        }
-        
         function findPathToPig() {
-            const start = { x: wolf.x, y: wolf.y };
-            const end = { x: pig.x, y: pig.y };
-            
-            const queue = [{ x: start.x, y: start.y, path: [] }];
+            const queue = [];
             const visited = new Set();
-            visited.add(`${start.x},${start.y}`);
             
-            const directions = [
-                { dx: 0, dy: -1 },
-                { dx: 0, dy: 1 },
-                { dx: -1, dy: 0 },
-                { dx: 1, dy: 0 }
-            ];
+            queue.push({
+                x: wolf.x,
+                y: wolf.y,
+                path: []
+            });
+            
+            visited.add(`${wolf.x},${wolf.y}`);
             
             while (queue.length > 0) {
                 const current = queue.shift();
                 
-                if (current.x === end.x && current.y === end.y) {
+                if (current.x === pig.x && current.y === pig.y) {
                     return current.path;
                 }
+                
+                const directions = [
+                    { dx: 0, dy: -1 },
+                    { dx: 0, dy: 1 },
+                    { dx: -1, dy: 0 },
+                    { dx: 1, dy: 0 }
+                ];
                 
                 for (const dir of directions) {
                     const newX = current.x + dir.dx;
@@ -792,8 +692,6 @@
                     wolf.y = newY;
                 }
             }
-            
-            checkWolfCollision();
         }
         
         function checkWolfCollision() {
@@ -869,7 +767,6 @@
             } else {
                 title.textContent = '💔 游戏结束';
                 title.className = 'lose';
-                message.textContent = '你被狼浩浩捕捉';
             }
             
             modal.style.display = 'flex';
