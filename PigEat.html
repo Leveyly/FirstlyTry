@@ -27,6 +27,7 @@
             padding: 20px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             text-align: center;
+            position: relative;
         }
         
         h1 {
@@ -147,14 +148,62 @@
         
         .win { color: #4CAF50; }
         .lose { color: #f44336; }
+        
+        .levelup-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            box-shadow: 0 10px 40px rgba(255, 215, 0, 0.5);
+            z-index: 2000;
+            animation: levelUpAnim 1.5s ease-out forwards;
+            display: none;
+        }
+        
+        @keyframes levelUpAnim {
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+            20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            40% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(0.8); opacity: 0; }
+        }
+        
+        .music-control {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            font-size: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .music-control:hover {
+            transform: scale(1.1);
+        }
     </style>
 </head>
 <body>
     <div class="game-container">
+        <div class="music-control" id="musicControl" onclick="toggleMusic()">🔇</div>
+        
         <h1>🐷 小胖猪吃美食 🐷</h1>
         
         <div class="game-info">
-            <div class="info-item">等级: <span id="level">小猪猪</span></div>
+            <div class="info-item">等级: <span id="level">张焕焕</span></div>
             <div class="info-item">时间: <span id="timer">60</span>秒</div>
             <div class="info-item">食物: <span id="foodCount">0</span>/16</div>
         </div>
@@ -192,6 +241,8 @@
             <button onclick="restartGame()">重新开始</button>
         </div>
     </div>
+    
+    <div id="levelupNotification" class="levelup-notification"></div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -201,23 +252,32 @@
         const MAZE_WIDTH = 20;
         const MAZE_HEIGHT = 20;
         
-        let pig = { x: 1, y: 1, level: 1 };
+        let pig = { x: 1, y: 1, level: 0, exp: 0, size: 1 };
         let wolf = { x: 18, y: 18, speed: 1 };
         let foods = [];
         let maze = [];
         let gameTime = 60;
-        let gameInterval;
         let timerInterval;
         let wolfInterval;
         let gameActive = true;
+        let lastTime = 0;
+        let targetLevel = 0;
+        let isLevelingUp = false;
+        let musicPlaying = false;
+        let backgroundMusicOscillator = null;
+        let backgroundMusicGain = null;
         
         const foodEmojis = ['🍎', '🍌', '🍊', '🍇', '🍓', '🫐', '🍒', '🍉', '🥝', '🍑', '🍍', '🥭', '🍋', '🍐', '🍈', '🥥'];
         const foodNames = ['苹果', '香蕉', '橙子', '葡萄', '草莓', '蓝莓', '樱桃', '西瓜', '猕猴桃', '桃子', '菠萝', '芒果', '柠檬', '梨', '哈密瓜', '椰子'];
         
         const levelNames = [
-            '小猪猪', '胖猪猪', '大猪猪', '超级猪猪', '究极猪猪', 
-            '传说猪猪', '神话猪猪', '至尊猪猪', '猪猪之王', '猪猪之神',
-            '宇宙猪猪', '银河猪猪', '时空猪猪', '混沌猪猪', '创世猪猪', '永恒猪猪'
+            '张焕焕', '胖猪猪', '大猪猪', '超级猪猪', '究极猪猪', 
+            '传说猪猪', '神话猪猪', '至尊猪猪', '猪猪之王', '永恒猪猪'
+        ];
+        
+        const levelColors = [
+            '#FFB6C1', '#FF69B4', '#FF1493', '#DB7093', '#C71585',
+            '#FF6347', '#FF4500', '#DC143C', '#B22222', '#8B0000'
         ];
         
         let audioContext;
@@ -227,6 +287,57 @@
                 audioContext = new (window.AudioContext || window.webkitAudioContext)();
             } catch (e) {
                 console.log('Audio not supported');
+            }
+        }
+        
+        function startBackgroundMusic() {
+            if (!audioContext || musicPlaying) return;
+            
+            const notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+            let noteIndex = 0;
+            
+            backgroundMusicGain = audioContext.createGain();
+            backgroundMusicGain.gain.setValueAtTime(0.05, audioContext.currentTime);
+            backgroundMusicGain.connect(audioContext.destination);
+            
+            function playNextNote() {
+                if (!musicPlaying) return;
+                
+                const osc = audioContext.createOscillator();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(notes[noteIndex], audioContext.currentTime);
+                osc.connect(backgroundMusicGain);
+                
+                osc.start(audioContext.currentTime);
+                osc.stop(audioContext.currentTime + 0.3);
+                
+                noteIndex = (noteIndex + 1) % notes.length;
+                
+                setTimeout(playNextNote, 400);
+            }
+            
+            playNextNote();
+            musicPlaying = true;
+        }
+        
+        function stopBackgroundMusic() {
+            musicPlaying = false;
+            if (backgroundMusicGain) {
+                backgroundMusicGain.disconnect();
+            }
+        }
+        
+        function toggleMusic() {
+            if (!audioContext) {
+                initAudio();
+            }
+            
+            if (musicPlaying) {
+                stopBackgroundMusic();
+                document.getElementById('musicControl').textContent = '🔇';
+            } else {
+                startBackgroundMusic();
+                document.getElementById('musicControl').textContent = '🎵';
             }
         }
         
@@ -264,6 +375,22 @@
                     eatGain.gain.exponentialDecayTo = 0.01;
                     eatOsc.start(audioContext.currentTime);
                     eatOsc.stop(audioContext.currentTime + 0.3);
+                    break;
+                    
+                case 'levelup':
+                    const levelOsc = audioContext.createOscillator();
+                    const levelGain = audioContext.createGain();
+                    levelOsc.connect(levelGain);
+                    levelGain.connect(audioContext.destination);
+                    
+                    levelOsc.frequency.setValueAtTime(440, audioContext.currentTime);
+                    levelOsc.frequency.setValueAtTime(554.37, audioContext.currentTime + 0.1);
+                    levelOsc.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.2);
+                    levelOsc.frequency.setValueAtTime(880, audioContext.currentTime + 0.3);
+                    levelGain.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    levelGain.gain.exponentialDecayTo = 0.01;
+                    levelOsc.start(audioContext.currentTime);
+                    levelOsc.stop(audioContext.currentTime + 0.4);
                     break;
                     
                 case 'caught':
@@ -305,8 +432,8 @@
                     if (x === 0 || x === MAZE_WIDTH - 1 || y === 0 || y === MAZE_HEIGHT - 1) {
                         maze[y][x] = 1;
                     } else if (x % 2 === 0 && y % 2 === 0) {
-                        maze[y][x] = Math.random() < 0.4 ? 1 : 0;
-                    } else if (Math.random() < 0.12) {
+                        maze[y][x] = Math.random() < 0.35 ? 1 : 0;
+                    } else if (Math.random() < 0.1) {
                         maze[y][x] = 1;
                     } else {
                         maze[y][x] = 0;
@@ -384,20 +511,40 @@
             }
         }
         
+        function isValidFoodPosition(x, y) {
+            if (maze[y][x] === 1) return false;
+            if (x === 1 && y === 1) return false;
+            if (x === 18 && y === 18) return false;
+            
+            let wallNeighbors = 0;
+            if (y > 0 && maze[y-1][x] === 1) wallNeighbors++;
+            if (y < MAZE_HEIGHT-1 && maze[y+1][x] === 1) wallNeighbors++;
+            if (x > 0 && maze[y][x-1] === 1) wallNeighbors++;
+            if (x < MAZE_WIDTH-1 && maze[y][x+1] === 1) wallNeighbors++;
+            
+            if (wallNeighbors >= 3) return false;
+            
+            return true;
+        }
+        
         function generateFoods() {
             foods = [];
             let placed = 0;
-            while (placed < 16) {
+            let attempts = 0;
+            const maxAttempts = 1000;
+            
+            while (placed < 16 && attempts < maxAttempts) {
                 let x = Math.floor(Math.random() * (MAZE_WIDTH - 2)) + 1;
                 let y = Math.floor(Math.random() * (MAZE_HEIGHT - 2)) + 1;
                 
-                if (maze[y][x] === 0 && !(x === 1 && y === 1) && !(x === 18 && y === 18)) {
+                if (isValidFoodPosition(x, y)) {
                     let exists = foods.some(f => f.x === x && f.y === y);
                     if (!exists) {
                         foods.push({ x, y, emoji: foodEmojis[placed], name: foodNames[placed], collected: false });
                         placed++;
                     }
                 }
+                attempts++;
             }
         }
         
@@ -456,56 +603,54 @@
         function drawPig() {
             const x = pig.x * CELL_SIZE + CELL_SIZE/2;
             const y = pig.y * CELL_SIZE + CELL_SIZE/2;
-            const size = CELL_SIZE/2 - 2;
+            const baseSize = CELL_SIZE/2 - 2;
+            const size = baseSize * pig.size;
             
-            ctx.save();
-            ctx.shadowColor = 'rgba(0,0,0,0.2)';
-            ctx.shadowBlur = 8;
-            ctx.shadowOffsetX = 3;
-            ctx.shadowOffsetY = 3;
-            
-            const gradient = ctx.createRadialGradient(x - 3, y - 3, 0, x, y, size);
-            gradient.addColorStop(0, '#FFD1DC');
-            gradient.addColorStop(1, '#FFB6C1');
+            const levelIndex = Math.min(pig.level, levelColors.length - 1);
+            const mainColor = levelColors[levelIndex];
             
             ctx.beginPath();
             ctx.arc(x, y, size, 0, Math.PI * 2);
-            ctx.fillStyle = gradient;
+            ctx.fillStyle = mainColor;
             ctx.fill();
-            ctx.strokeStyle = '#FF69B4';
-            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#FF1493';
+            ctx.lineWidth = 2;
             ctx.stroke();
-            ctx.restore();
             
             ctx.beginPath();
-            ctx.arc(x - size/3, y - size/4, size/4, 0, Math.PI * 2);
-            ctx.arc(x + size/3, y - size/4, size/4, 0, Math.PI * 2);
-            ctx.fillStyle = '#333';
+            ctx.arc(x - size/3, y - size/4, size/5, 0, Math.PI * 2);
+            ctx.arc(x + size/3, y - size/4, size/5, 0, Math.PI * 2);
+            ctx.fillStyle = '#000';
             ctx.fill();
             
             ctx.beginPath();
-            ctx.arc(x - size/3 - 2, y - size/4 - 2, size/8, 0, Math.PI * 2);
-            ctx.arc(x + size/3 - 2, y - size/4 - 2, size/8, 0, Math.PI * 2);
+            ctx.arc(x - size/3 - 1, y - size/4 - 1, size/10, 0, Math.PI * 2);
+            ctx.arc(x + size/3 - 1, y - size/4 - 1, size/10, 0, Math.PI * 2);
             ctx.fillStyle = '#fff';
             ctx.fill();
             
             ctx.beginPath();
-            ctx.ellipse(x, y + size/4, size/2.5, size/3, 0, 0, Math.PI * 2);
+            ctx.ellipse(x, y + size/4, size/3, size/4, 0, 0, Math.PI * 2);
             ctx.fillStyle = '#FF69B4';
             ctx.fill();
+            ctx.strokeStyle = '#FF1493';
+            ctx.lineWidth = 1;
+            ctx.stroke();
             
             ctx.beginPath();
-            ctx.ellipse(x - size/4, y + size/4, size/6, size/4, -0.2, 0, Math.PI * 2);
-            ctx.ellipse(x + size/4, y + size/4, size/6, size/4, 0.2, 0, Math.PI * 2);
+            ctx.arc(x - size/5, y + size/4, size/10, 0, Math.PI * 2);
+            ctx.arc(x + size/5, y + size/4, size/10, 0, Math.PI * 2);
             ctx.fillStyle = '#FF1493';
             ctx.fill();
             
-            const levelIndex = Math.min(pig.level - 1, levelNames.length - 1);
+            const levelName = levelNames[levelIndex];
+            const levelColor = levelColors[levelIndex];
+            
             ctx.font = 'bold 10px Arial';
-            ctx.fillStyle = '#333';
+            ctx.fillStyle = levelColor;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(levelNames[levelIndex], x, y - size - 8);
+            ctx.fillText(levelName, x, y - size - 8);
         }
         
         function drawWolf() {
@@ -659,8 +804,18 @@
             foods.forEach(food => {
                 if (!food.collected && food.x === pig.x && food.y === pig.y) {
                     food.collected = true;
-                    pig.level++;
+                    pig.exp++;
+                    pig.size = Math.min(pig.size + 0.05, 1.5);
                     playSound('eat');
+                    
+                    if (pig.exp >= 2) {
+                        pig.exp = 0;
+                        pig.level++;
+                        targetLevel = pig.level;
+                        playSound('levelup');
+                        showLevelUpNotification();
+                    }
+                    
                     updateUI();
                     
                     if (foods.every(f => f.collected)) {
@@ -670,18 +825,30 @@
             });
         }
         
+        function showLevelUpNotification() {
+            const levelIndex = Math.min(pig.level, levelNames.length - 1);
+            const notification = document.getElementById('levelupNotification');
+            notification.textContent = `🎉 恭喜升级为 ${levelNames[levelIndex]}！`;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 1500);
+        }
+        
         function updateUI() {
-            const levelIndex = Math.min(pig.level - 1, levelNames.length - 1);
+            const levelIndex = Math.min(pig.level, levelNames.length - 1);
             document.getElementById('level').textContent = levelNames[levelIndex];
+            document.getElementById('level').style.color = levelColors[levelIndex];
             document.getElementById('foodCount').textContent = foods.filter(f => f.collected).length;
             document.getElementById('timer').textContent = gameTime;
         }
         
         function endGame(won) {
             gameActive = false;
-            clearInterval(gameInterval);
             clearInterval(timerInterval);
             clearInterval(wolfInterval);
+            stopBackgroundMusic();
             
             if (won) {
                 playSound('win');
@@ -712,7 +879,7 @@
         }
         
         function initGame() {
-            pig = { x: 1, y: 1, level: 1 };
+            pig = { x: 1, y: 1, level: 0, exp: 0, size: 1 };
             wolf = { x: 18, y: 18, speed: 1 };
             gameTime = 60;
             gameActive = true;
@@ -725,11 +892,10 @@
             generateFoods();
             updateUI();
             
-            clearInterval(gameInterval);
             clearInterval(timerInterval);
             clearInterval(wolfInterval);
             
-            gameInterval = setInterval(gameLoop, 100);
+            gameLoop(0);
             timerInterval = setInterval(() => {
                 if (gameActive) {
                     gameTime--;
@@ -742,14 +908,19 @@
             wolfInterval = setInterval(moveWolf, 300);
         }
         
-        function gameLoop() {
+        function gameLoop(currentTime) {
             if (!gameActive) return;
+            
+            const deltaTime = currentTime - lastTime;
+            lastTime = currentTime;
             
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             drawMaze();
             drawFoods();
             drawPig();
             drawWolf();
+            
+            requestAnimationFrame(gameLoop);
         }
         
         document.addEventListener('keydown', (e) => {
