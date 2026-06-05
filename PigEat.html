@@ -276,8 +276,8 @@
         ];
         
         const levelColors = [
-            '#FFB6C1', '#FF69B4', '#FF1493', '#DB7093', '#C71585',
-            '#FF6347', '#FF4500', '#DC143C', '#B22222', '#8B0000'
+            '#FFB6C1', '#FF91A4', '#FF6B9D', '#FF4596', '#FF1F8F',
+            '#FF1493', '#E61284', '#CC0F75', '#B30C66', '#990957'
         ];
         
         let audioContext;
@@ -606,14 +606,15 @@
             const baseSize = CELL_SIZE/2 - 2;
             const size = baseSize * pig.size;
             
-            const levelIndex = Math.min(pig.level, levelColors.length - 1);
-            const mainColor = levelColors[levelIndex];
+            const gradient = ctx.createRadialGradient(x - 2, y - 2, 0, x, y, size);
+            gradient.addColorStop(0, '#FFE4E1');
+            gradient.addColorStop(1, '#FFB6C1');
             
             ctx.beginPath();
             ctx.arc(x, y, size, 0, Math.PI * 2);
-            ctx.fillStyle = mainColor;
+            ctx.fillStyle = gradient;
             ctx.fill();
-            ctx.strokeStyle = '#FF1493';
+            ctx.strokeStyle = '#FF69B4';
             ctx.lineWidth = 2;
             ctx.stroke();
             
@@ -643,6 +644,7 @@
             ctx.fillStyle = '#FF1493';
             ctx.fill();
             
+            const levelIndex = Math.min(pig.level, levelNames.length - 1);
             const levelName = levelNames[levelIndex];
             const levelColor = levelColors[levelIndex];
             
