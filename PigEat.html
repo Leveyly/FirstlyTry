@@ -52,6 +52,13 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         
+        .level-title {
+            color: #FF69B4;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        
         #gameCanvas {
             border: 4px solid #333;
             border-radius: 10px;
@@ -71,22 +78,22 @@
             display: flex;
             justify-content: center;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
             margin-top: 15px;
         }
         
         .food-item {
             display: flex;
             align-items: center;
-            gap: 5px;
-            font-size: 12px;
-            padding: 5px 10px;
+            gap: 3px;
+            font-size: 11px;
+            padding: 4px 8px;
             background: #f9f9f9;
-            border-radius: 15px;
+            border-radius: 12px;
         }
         
         .food-emoji {
-            font-size: 20px;
+            font-size: 16px;
         }
         
         .modal {
@@ -147,6 +154,31 @@
         
         .win { color: #4CAF50; }
         .lose { color: #f44336; }
+        
+        .level-up-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+            color: white;
+            padding: 30px 50px;
+            border-radius: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 40px rgba(255, 165, 0, 0.6);
+            z-index: 999;
+            animation: levelUpAnim 1s ease-out forwards;
+            pointer-events: none;
+        }
+        
+        @keyframes levelUpAnim {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            20% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            80% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+        }
     </style>
 </head>
 <body>
@@ -154,9 +186,10 @@
         <h1>🐷 小胖猪吃美食 🐷</h1>
         
         <div class="game-info">
-            <div class="info-item">等级: <span id="level">1</span>级小猪</div>
-            <div class="info-item">时间: <span id="timer">60</span>秒</div>
-            <div class="info-item">食物: <span id="foodCount">0</span>/8</div>
+            <div class="info-item">称号: <span id="levelTitle" class="level-title">小猪猪</span></div>
+            <div class="info-item">等级: <span id="level">1</span>级</div>
+            <div class="info-item">时间: <span id="timer">90</span>秒</div>
+            <div class="info-item">食物: <span id="foodCount">0</span>/16</div>
         </div>
         
         <canvas id="gameCanvas" width="600" height="600"></canvas>
@@ -174,6 +207,14 @@
             <div class="food-item"><span class="food-emoji">🫐</span>蓝莓</div>
             <div class="food-item"><span class="food-emoji">🍒</span>樱桃</div>
             <div class="food-item"><span class="food-emoji">🍉</span>西瓜</div>
+            <div class="food-item"><span class="food-emoji">🥝</span>猕猴桃</div>
+            <div class="food-item"><span class="food-emoji">🍑</span>桃子</div>
+            <div class="food-item"><span class="food-emoji">🍍</span>菠萝</div>
+            <div class="food-item"><span class="food-emoji">🥭</span>芒果</div>
+            <div class="food-item"><span class="food-emoji">🍋</span>柠檬</div>
+            <div class="food-item"><span class="food-emoji">🍐</span>梨子</div>
+            <div class="food-item"><span class="food-emoji">🍑</span>杏子</div>
+            <div class="food-item"><span class="food-emoji">🍈</span>哈密瓜</div>
         </div>
     </div>
     
@@ -184,6 +225,8 @@
             <button onclick="restartGame()">重新开始</button>
         </div>
     </div>
+    
+    <div id="levelUpPopup" class="level-up-popup" style="display: none;"></div>
 
     <script>
         const canvas = document.getElementById('gameCanvas');
@@ -193,18 +236,31 @@
         const MAZE_WIDTH = 20;
         const MAZE_HEIGHT = 20;
         
-        let pig = { x: 1, y: 1, level: 1 };
+        let pig = { x: 1, y: 1, level: 1, exp: 0, expToNext: 2 };
         let wolf = { x: 18, y: 18, speed: 1 };
         let foods = [];
         let maze = [];
-        let gameTime = 60;
+        let gameTime = 90;
         let gameInterval;
         let timerInterval;
         let wolfInterval;
         let gameActive = true;
         
-        const foodEmojis = ['🍎', '🍌', '🍊', '🍇', '🍓', '🫐', '🍒', '🍉'];
-        const foodNames = ['苹果', '香蕉', '橙子', '葡萄', '草莓', '蓝莓', '樱桃', '西瓜'];
+        const levelTitles = [
+            '小猪猪',
+            '大猪猪', 
+            '胖猪猪',
+            '超级猪猪',
+            '无敌猪猪',
+            '猪猪侠',
+            '猪猪王',
+            '猪猪神',
+            '天蓬元帅',
+            '猪猪至尊'
+        ];
+        
+        const foodEmojis = ['🍎', '🍌', '🍊', '🍇', '🍓', '🫐', '🍒', '🍉', '🥝', '🍑', '🍍', '🥭', '🍋', '🍐', '🍑', '🍈'];
+        const foodNames = ['苹果', '香蕉', '橙子', '葡萄', '草莓', '蓝莓', '樱桃', '西瓜', '猕猴桃', '桃子', '菠萝', '芒果', '柠檬', '梨子', '杏子', '哈密瓜'];
         
         let audioContext;
         
@@ -219,34 +275,70 @@
         function playSound(type) {
             if (!audioContext) return;
             
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
             switch(type) {
+                case 'walk':
+                    const walkOsc = audioContext.createOscillator();
+                    const walkGain = audioContext.createGain();
+                    walkOsc.connect(walkGain);
+                    walkGain.connect(audioContext.destination);
+                    
+                    walkOsc.type = 'triangle';
+                    walkOsc.frequency.setValueAtTime(150, audioContext.currentTime);
+                    walkOsc.frequency.exponentialRampToValueAtTime(80, audioContext.currentTime + 0.08);
+                    
+                    walkGain.gain.setValueAtTime(0.15, audioContext.currentTime);
+                    walkGain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
+                    
+                    walkOsc.start(audioContext.currentTime);
+                    walkOsc.stop(audioContext.currentTime + 0.08);
+                    break;
+                    
                 case 'eat':
-                    oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime);
-                    oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1);
-                    oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2);
-                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gainNode.gain.exponentialDecayTo = 0.01;
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.3);
+                    const eatOsc = audioContext.createOscillator();
+                    const eatGain = audioContext.createGain();
+                    eatOsc.connect(eatGain);
+                    eatGain.connect(audioContext.destination);
+                    
+                    eatOsc.frequency.setValueAtTime(523.25, audioContext.currentTime);
+                    eatOsc.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1);
+                    eatOsc.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2);
+                    eatGain.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    eatGain.gain.exponentialDecayTo = 0.01;
+                    eatOsc.start(audioContext.currentTime);
+                    eatOsc.stop(audioContext.currentTime + 0.3);
+                    break;
+                    
+                case 'levelup':
+                    const levelNotes = [523.25, 659.25, 783.99, 1046.50];
+                    levelNotes.forEach((freq, i) => {
+                        const osc = audioContext.createOscillator();
+                        const gain = audioContext.createGain();
+                        osc.connect(gain);
+                        gain.connect(audioContext.destination);
+                        osc.frequency.setValueAtTime(freq, audioContext.currentTime + i * 0.15);
+                        gain.gain.setValueAtTime(0.4, audioContext.currentTime + i * 0.15);
+                        gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.15 + 0.2);
+                        osc.start(audioContext.currentTime + i * 0.15);
+                        osc.stop(audioContext.currentTime + i * 0.15 + 0.2);
+                    });
                     break;
                     
                 case 'caught':
-                    oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
-                    oscillator.frequency.setValueAtTime(150, audioContext.currentTime + 0.1);
-                    oscillator.frequency.setValueAtTime(100, audioContext.currentTime + 0.2);
-                    gainNode.gain.setValueAtTime(0.4, audioContext.currentTime);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.4);
+                    const caughtOsc = audioContext.createOscillator();
+                    const caughtGain = audioContext.createGain();
+                    caughtOsc.connect(caughtGain);
+                    caughtGain.connect(audioContext.destination);
+                    
+                    caughtOsc.frequency.setValueAtTime(200, audioContext.currentTime);
+                    caughtOsc.frequency.setValueAtTime(150, audioContext.currentTime + 0.1);
+                    caughtOsc.frequency.setValueAtTime(100, audioContext.currentTime + 0.2);
+                    caughtGain.gain.setValueAtTime(0.4, audioContext.currentTime);
+                    caughtOsc.start(audioContext.currentTime);
+                    caughtOsc.stop(audioContext.currentTime + 0.4);
                     break;
                     
                 case 'win':
-                    const notes = [523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50];
+                    const notes = [523.25, 587.33, 659.25, 698.46, 783.99, 880.00, 987.77, 1046.50, 1174.66, 1318.51];
                     notes.forEach((freq, i) => {
                         const osc = audioContext.createOscillator();
                         const gain = audioContext.createGain();
@@ -260,6 +352,16 @@
                     });
                     return;
             }
+        }
+        
+        function showLevelUpPopup() {
+            const popup = document.getElementById('levelUpPopup');
+            popup.textContent = `🎉 升级！${levelTitles[pig.level - 1]} 🎉`;
+            popup.style.display = 'block';
+            
+            setTimeout(() => {
+                popup.style.display = 'none';
+            }, 1000);
         }
         
         function generateMaze() {
@@ -306,7 +408,7 @@
         function generateFoods() {
             foods = [];
             let placed = 0;
-            while (placed < 8) {
+            while (placed < 16) {
                 let x = Math.floor(Math.random() * (MAZE_WIDTH - 2)) + 1;
                 let y = Math.floor(Math.random() * (MAZE_HEIGHT - 2)) + 1;
                 
@@ -375,7 +477,10 @@
         function drawPig() {
             const x = pig.x * CELL_SIZE + CELL_SIZE/2;
             const y = pig.y * CELL_SIZE + CELL_SIZE/2;
-            const size = CELL_SIZE/2 - 2;
+            let size = CELL_SIZE/2 - 2;
+            
+            size = size + (pig.level - 1) * 1.5;
+            if (size > CELL_SIZE/2 + 5) size = CELL_SIZE/2 + 5;
             
             ctx.save();
             ctx.shadowColor = 'rgba(0,0,0,0.2)';
@@ -577,8 +682,17 @@
             foods.forEach(food => {
                 if (!food.collected && food.x === pig.x && food.y === pig.y) {
                     food.collected = true;
-                    pig.level++;
+                    pig.exp++;
                     playSound('eat');
+                    
+                    if (pig.exp >= pig.expToNext && pig.level < 10) {
+                        pig.level++;
+                        pig.exp = 0;
+                        pig.expToNext = pig.level + 1;
+                        playSound('levelup');
+                        showLevelUpPopup();
+                    }
+                    
                     updateUI();
                     
                     if (foods.every(f => f.collected)) {
@@ -590,6 +704,7 @@
         
         function updateUI() {
             document.getElementById('level').textContent = pig.level;
+            document.getElementById('levelTitle').textContent = levelTitles[pig.level - 1];
             document.getElementById('foodCount').textContent = foods.filter(f => f.collected).length;
             document.getElementById('timer').textContent = gameTime;
         }
@@ -613,7 +728,7 @@
             if (won) {
                 title.textContent = '🎉 恭喜通关！';
                 title.className = 'win';
-                message.textContent = '恭喜你站在猪猪之巅——张焕焕';
+                message.textContent = `恭喜你站在猪猪之巅——张焕焕\n最终称号：${levelTitles[pig.level - 1]}`;
             } else {
                 title.textContent = '💔 游戏结束';
                 title.className = 'lose';
@@ -629,9 +744,9 @@
         }
         
         function initGame() {
-            pig = { x: 1, y: 1, level: 1 };
+            pig = { x: 1, y: 1, level: 1, exp: 0, expToNext: 2 };
             wolf = { x: 18, y: 18, speed: 1 };
-            gameTime = 60;
+            gameTime = 90;
             gameActive = true;
             
             if (!audioContext) {
@@ -703,6 +818,7 @@
             if (newX >= 0 && newX < MAZE_WIDTH && newY >= 0 && newY < MAZE_HEIGHT && maze[newY][newX] === 0) {
                 pig.x = newX;
                 pig.y = newY;
+                playSound('walk');
                 checkFoodCollision();
                 checkWolfCollision();
             }
