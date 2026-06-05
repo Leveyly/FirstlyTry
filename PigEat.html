@@ -777,6 +777,7 @@
             } else {
                 title.textContent = '💔 游戏结束';
                 title.className = 'lose';
+                message.textContent = '你已被狼浩浩捕获';
             }
             
             modal.style.display = 'flex';
@@ -804,6 +805,7 @@
             clearInterval(timerInterval);
             clearInterval(wolfInterval);
             
+            startBackgroundMusic();
             gameLoop(0);
             timerInterval = setInterval(() => {
                 if (gameActive) {
@@ -884,6 +886,10 @@
         document.addEventListener('click', () => {
             if (!audioContext) {
                 initAudio();
+            }
+            if (!musicPlaying) {
+                startBackgroundMusic();
+                document.getElementById('musicControl').textContent = '🎵';
             }
         }, { once: true });
         
